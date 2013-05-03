@@ -20,12 +20,12 @@
 
 <table class="index">
   <tr>
-    <th>Date creation</th>
-    <th>CSV Name</th>
-    <th>Status</th>
-    <th>Date Status</th>
-    <th>Products imported</th>
-    <th>Actions</th>
+		<th><%= t('table.product_imports.title.date_creation') %></th>
+		<th><%= t('table.product_imports.title.csv_name') %></th>
+		<th><%= t('table.product_imports.title.status') %></th>
+		<th><%= t('table.product_imports.title.date_status') %></th>
+		<th><%= t('table.product_imports.title.products_imported') %></th>
+		<th><%= t('table.product_imports.title.actions') %></th>
   </tr>
   <% Spree::ProductImport.order("created_at DESC").all.each do |import| %>
     <tr>

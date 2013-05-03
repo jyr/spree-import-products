@@ -1,7 +1,7 @@
 es:
     product_import_processing: 'Gracias, su carga a sido agregada a lista para ser procesada. Recibiras un mail de confirmación cuando la carga sea completada.'
     product_imports: 'Importar Productos'
-    show_product_import: 'Mostrar Carga de Productos'w
+    show_product_import: 'Mostrar Carga de Productos'
     delete_product_import: "Borrar"
     delete_product_import_successful: "Su carga y productos asociados fueron eliminados correctamente"
     confirm_delete_product_import: "¿Desea borrar la carga y todos los productos asociados, estas seguro?"
