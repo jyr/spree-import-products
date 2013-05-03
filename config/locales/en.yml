@@ -1,6 +1,7 @@
 en:
     product_import_processing: 'Thanks, your import has been added to the queue for processing. You will receive an email confirming the import once it has completed.'
     product_imports: 'Import Products'
+    show_product_import: 'Show Product Import'
     delete_product_import: "Delete"
     delete_product_import_successful: "Import and products associated deleted successfully"
     confirm_delete_product_import: "Deleting this import will delete all the product associated, are you sure ?"
@@ -15,3 +16,12 @@ en:
             heading: 'Import Products from CSV'
             new:
                 data_file: "Product Data File"
+    table:
+        product_imports:
+            title:
+                date_creation: 'Date Creation'
+                csv_name: 'CSV Name'
+                status: 'Status'
+                date_status: 'Date Status'
+                products_imported: 'Products Imported'
+                actions: 'Actions'
