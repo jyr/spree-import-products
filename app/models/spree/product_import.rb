@@ -145,7 +145,7 @@ module Spree
         if Spree::ProductImport.settings[:destroy_original_products]
           @products_before_import.each { |p| p.destroy }
         end
-
+				file.unlink
         log("Importing products for #{self.data_file_file_name} completed at #{DateTime.now}")
       end
       #All done!
