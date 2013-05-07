@@ -10,13 +10,19 @@ module Spree
 
   class ProductImport < ActiveRecord::Base
     attr_accessible :data_file
-    has_attached_file :data_file, :path => ":rails_root/lib/etc/product_data/data-files/:basename.:extension"
+    has_attached_file :data_file, 
+			:path => ':rails_root/public/spree/product_data/data-files/:basename.:extension',
+			:url => '/spree/product_data_data-files/:basename.:extension'
+
     validates_attachment_presence :data_file
 
     after_destroy :destroy_products
 
     serialize :product_ids, Array
     cattr_accessor :settings
+
+    include Spree::Core::S3Support
+    supports_s3 :data_file
 
     def products
       Spree::Product.where :id => product_ids
@@ -25,6 +31,7 @@ module Spree
     require 'csv'
     require 'pp'
     require 'open-uri'
+    require 'tempfile'
 
     def destroy_products
       products.destroy_all
@@ -90,8 +97,9 @@ module Spree
         #Get products *before* import -
         @products_before_import = Spree::Product.all
         @names_of_products_before_import = @products_before_import.map(&:name)
-
-        rows = CSV.read(self.data_file.path)
+				
+				_tempfile 'import', 'csv', open(self.data_file.url).read
+        rows = CSV.read("#{Rails.root}/tmp/import_csv_#{Process.pid}")
 
         if Spree::ProductImport.settings[:first_row_is_headings]
           col = get_column_mappings(rows[0])
@@ -144,6 +152,18 @@ module Spree
       complete
       return [:notice, "Product data was successfully imported."]
     end
+		
+		def _tempfile name, extension, data
+			file = Tempfile.open([name, ".#{extension}"],"#{Rails.root}/tmp/")
+			begin
+				file.binmode
+				file.write(data)
+			ensure
+				file.close
+			end
+			File.rename(file.path, "#{Rails.root}/tmp/#{name}_csv_#{Process.pid}")
+			file
+		end
 
     private
 
