@@ -164,6 +164,16 @@ module Spree
 			file.unlink
 		end
 
+		def _generat_path filename
+			url = filename
+			pos = url.rindex('/')
+			name, extension = url[pos + 1 .. -1].split('.')
+			path = "#{Rails.root}/tmp/#{name}.#{extension}"
+			file = _tempfile name, extension, open(url).read
+			File.rename(file.path, path)
+			path
+		end
+
     private
 
 
@@ -371,7 +381,8 @@ module Spree
     # If it fails altogether, it logs it and exits the method.
     def fetch_remote_image(filename)
       begin
-        open(filename)
+        path = _generate_path(filename)
+        File.open(path, 'rb')
       rescue OpenURI::HTTPError => error
         log("Image #{filename} retrival returned #{error.message}, so this image was not imported")
       rescue
