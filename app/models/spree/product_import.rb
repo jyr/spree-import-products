@@ -164,14 +164,11 @@ module Spree
 			file.unlink
 		end
 
-		def _generat_path filename
+		def _get_name filename
 			url = filename
 			pos = url.rindex('/')
 			name, extension = url[pos + 1 .. -1].split('.')
-			path = "#{Rails.root}/tmp/#{name}.#{extension}"
-			file = _tempfile name, extension, open(url).read
-			File.rename(file.path, path)
-			path
+			name
 		end
 
     private
@@ -351,9 +348,14 @@ module Spree
 
       #The image can be fetched from an HTTP or local source - either method returns a Tempfile
       file = filename =~ /\Ahttp[s]*:\/\// ? fetch_remote_image(filename) : fetch_local_image(filename)
+      filename = /\Ahttp[s]*:\/\// ? _get_name(filename) : filename
       #An image has an attachment (the image file) and some object which 'views' it
+			print "FILE #{file.inspect} FILENAME #{filename}\n"
+			exit 0
       product_image = Spree::Image.new({:attachment => file,
                                 :viewable_id => product_or_variant.id,
+																:viewable_type => 'Spree::Variant',
+																:attachment_file_name => filename,
                                 :position => product_or_variant.images.length
                                 })
 
@@ -381,8 +383,7 @@ module Spree
     # If it fails altogether, it logs it and exits the method.
     def fetch_remote_image(filename)
       begin
-        path = _generate_path(filename)
-        File.open(path, 'rb')
+        open(filename)
       rescue OpenURI::HTTPError => error
         log("Image #{filename} retrival returned #{error.message}, so this image was not imported")
       rescue
