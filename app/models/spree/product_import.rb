@@ -99,7 +99,8 @@ module Spree
         @names_of_products_before_import = @products_before_import.map(&:name)
 				
 				_tempfile 'import', 'csv', open(self.data_file.url).read
-        rows = CSV.read("#{Rails.root}/tmp/import_csv_#{Process.pid}")
+				csv_file = "#{Rails.root}/tmp/import_csv_#{Process.pid}"
+        rows = CSV.read(csv_file)
 
         if Spree::ProductImport.settings[:first_row_is_headings]
           col = get_column_mappings(rows[0])
@@ -129,7 +130,6 @@ module Spree
 
           variant_comparator_field = Spree::ProductImport.settings[:variant_comparator_field].try :to_sym
           variant_comparator_column = col[variant_comparator_field]
-
           if Spree::ProductImport.settings[:create_variants] and variant_comparator_column and
             p = Spree::Product.where(variant_comparator_field => row[variant_comparator_column]).first
 
@@ -148,6 +148,7 @@ module Spree
         log("Importing products for #{self.data_file_file_name} completed at #{DateTime.now}")
       end
       #All done!
+			File.unlink(csv_file)
       complete
       return [:notice, "Product data was successfully imported."]
     end
@@ -160,15 +161,28 @@ module Spree
 			ensure
 				file.close
 			end
-			File.rename(file.path, "#{Rails.root}/tmp/#{name}_csv_#{Process.pid}")
+			
+			if extension == 'csv'
+				File.rename(file.path, "#{Rails.root}/tmp/#{name}_csv_#{Process.pid}")
+			else
+				File.rename(file.path, "#{Rails.root}/tmp/#{name}.#{extension}")
+			end
 			file.unlink
 		end
 
 		def _get_name filename
 			url = filename
 			pos = url.rindex('/')
+			url[pos + 1 .. -1]
+		end
+
+		def _rename filename
+			url = filename
+			pos = url.rindex('/')
 			name, extension = url[pos + 1 .. -1].split('.')
-			name
+			path = "#{Rails.root}/tmp/#{name}.#{extension}"
+			_tempfile name, extension, open(url).read
+			path
 		end
 
     private
@@ -276,7 +290,6 @@ module Spree
         #Save the object before creating asssociated objects
         product.save and product_ids << product.id
 
-
         #Associate our new product with any taxonomies that we need to worry about
         associate_product_with_taxon(product, params_hash[:category])
 
@@ -348,16 +361,16 @@ module Spree
 
       #The image can be fetched from an HTTP or local source - either method returns a Tempfile
       file = filename =~ /\Ahttp[s]*:\/\// ? fetch_remote_image(filename) : fetch_local_image(filename)
-      filename = /\Ahttp[s]*:\/\// ? _get_name(filename) : filename
+			new_file = _rename filename
+			filename = /\Ahttp[s]*:\/\// ? filename : _get_name(filename)
       #An image has an attachment (the image file) and some object which 'views' it
-			print "FILE #{file.inspect} FILENAME #{filename}\n"
-			exit 0
-      product_image = Spree::Image.new({:attachment => file,
+      product_image = Spree::Image.create!({
+                                :attachment => file,
                                 :viewable_id => product_or_variant.id,
-																:viewable_type => 'Spree::Variant',
-																:attachment_file_name => filename,
-                                :position => product_or_variant.images.length
-                                })
+                                :attachment_file_name => filename,
+                                :position => product_or_variant.images.length + 1
+                                }, :without_protection => true)
+			File.unlink(new_file)
 
       product_or_variant.images << product_image if product_image.save
     end
@@ -383,7 +396,7 @@ module Spree
     # If it fails altogether, it logs it and exits the method.
     def fetch_remote_image(filename)
       begin
-        open(filename)
+        open(_rename(filename))
       rescue OpenURI::HTTPError => error
         log("Image #{filename} retrival returned #{error.message}, so this image was not imported")
       rescue
@@ -411,7 +424,6 @@ module Spree
       taxonomy_name = taxonomy
       taxonomy = Spree::Taxonomy.find(:first, :conditions => ["lower(name) = ?", taxonomy])
       taxonomy = Spree::Taxonomy.create(:name => taxonomy_name.capitalize) if taxonomy.nil? && Spree::ProductImport.settings[:create_missing_taxonomies]
-
       taxon_hierarchy.split(/\s*\&\s*/).each do |hierarchy|
         hierarchy = hierarchy.split(/\s*>\s*/)
 				hierarchy.shift
