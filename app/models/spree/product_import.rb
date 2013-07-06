@@ -1,3 +1,4 @@
+# encoding: utf-8
 # This model is the master routine for uploading products
 # Requires Paperclip and CSV to upload the CSV file and read it nicely.
 
@@ -100,7 +101,7 @@ module Spree
 				
 				_tempfile 'import', 'csv', open(self.data_file.url).read
 				csv_file = "#{Rails.root}/tmp/import_csv_#{Process.pid}"
-        rows = CSV.read(csv_file)
+        rows = CSV.read(csv_file, "r:iso-8859-1")
 
         if Spree::ProductImport.settings[:first_row_is_headings]
           col = get_column_mappings(rows[0])
